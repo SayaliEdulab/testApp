@@ -30,7 +30,12 @@ const MainScreen = ({navigation}) => {
     fetch(`https://jsonplaceholder.typicode.com/todos?_page=${page}&_limit=10`)
       .then(response => response.json())
       .then(data => {
-        setTodos(prevTodos => [...prevTodos, ...data]);
+        const updatedData = data.map(todo => ({
+          ...todo,
+          created_at: new Date().toISOString(), // Add created_at timestamp
+          updated_at: new Date().toISOString(), // Add updated_at timestamp
+        }));
+        setTodos(prevTodos => [...prevTodos, ...updatedData]);
         setHasMore(data.length > 0);
         setLoading(false);
       })
@@ -40,7 +45,13 @@ const MainScreen = ({navigation}) => {
   const handleToggle = id => {
     setTodos(prevTodos =>
       prevTodos.map(todo =>
-        todo.id === id ? {...todo, completed: !todo.completed} : todo,
+        todo.id === id
+          ? {
+              ...todo,
+              completed: !todo.completed,
+              updated_at: new Date().toISOString(),
+            }
+          : todo,
       ),
     );
   };
@@ -73,6 +84,14 @@ const MainScreen = ({navigation}) => {
     return [...filteredTodos].sort((a, b) => a.id - b.id);
   };
 
+  const getCompletedCount = () => {
+    return todos.filter(todo => todo.completed).length;
+  };
+
+  const getTotalCount = () => {
+    return todos.length;
+  };
+
   const renderItem = ({item}) => (
     <TodoItem
       todo={item}
@@ -89,20 +108,28 @@ const MainScreen = ({navigation}) => {
           onPress={() => navigation.navigate('AddTodoScreen')}
           style={styles.iconButton}>
           <FeatherIcon name="plus" size={24} color="black" />
-          <Text style={{textAlign: 'center'}}>Add Todo</Text>
+          <Text style={{textAlign: 'center', color: 'black'}}>Add Todo</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setFilterModalVisible(true)}
           style={styles.iconButton}>
           <FeatherIcon name="filter" size={24} color="black" />
-          <Text style={{textAlign: 'center'}}>Filter</Text>
+          <Text style={{textAlign: 'center', color: 'black'}}>Filter</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setSortModalVisible(true)}
           style={styles.iconButton}>
           <FeatherIcon name="sliders" size={24} color="black" />
-          <Text style={{marginRight: 3}}>SortBy Id</Text>
+          <Text style={{marginRight: 3, color: 'black'}}>SortBy Id</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Counts */}
+      <View style={styles.countContainer}>
+        <Text style={styles.countText}>Total Todos: {getTotalCount()}</Text>
+        <Text style={styles.countText}>
+          Completed Todos: {getCompletedCount()}
+        </Text>
       </View>
 
       {/* Filter Modal */}
@@ -210,6 +237,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     padding: 10,
     borderRadius: 10,
+  },
+  countContainer: {
+    margin: 10,
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
+  },
+  countText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'black',
   },
   modalContainer: {
     flex: 1,
