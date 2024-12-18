@@ -28,7 +28,9 @@ const MainScreen = ({navigation}) => {
   const fetchTodos = page => {
     setLoading(true);
     fetch(`https://jsonplaceholder.typicode.com/todos?_page=${page}&_limit=10`)
-      .then(response => response.json())
+      .then(response => {
+        return response.json(); // Parse the JSON body
+      })
       .then(data => {
         const updatedData = data.map(todo => ({
           ...todo,
@@ -39,7 +41,10 @@ const MainScreen = ({navigation}) => {
         setHasMore(data.length > 0);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(error => {
+        console.error('Fetch Error:', error); // Log any errors
+        setLoading(false);
+      });
   };
 
   const handleToggle = id => {
