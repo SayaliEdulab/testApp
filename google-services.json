@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "916387394171",
+    "project_id": "todo-app-f81a9",
+    "storage_bucket": "todo-app-f81a9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:916387394171:android:3d8ed06ab9e305fb0a28de",
+        "android_client_info": {
+          "package_name": "com.videoapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByiM2RdEtDreMeEB0gVl83sQcwBmnw1Ds"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
