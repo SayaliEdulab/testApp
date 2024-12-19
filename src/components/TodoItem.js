@@ -12,11 +12,6 @@ const TodoItem = ({todo, onToggle, onDelete, onEdit, onSave}) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(todo.title);
 
-  // const handleSave = () => {
-  //   onEdit(todo.id, editedText);
-  //   setIsEditing(false);
-  // };
-
   return (
     <View style={styles.cardContainer}>
       <View style={styles.card}>
@@ -57,7 +52,7 @@ const TodoItem = ({todo, onToggle, onDelete, onEdit, onSave}) => {
             <TouchableOpacity
               style={styles.editButton}
               onPress={() => setIsEditing(true)}>
-              <Text style={styles.editButtonText}>Edit</Text>
+              <Text style={styles.deleteButtonText}>Edit</Text>
             </TouchableOpacity>
           )}
 
