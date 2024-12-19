@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, Text, Button, StyleSheet, TouchableOpacity} from 'react-native';
 
-const TodoItem = ({todo, onToggle, onDelete}) => (
+const TodoItem = ({todo, onToggle, onDelete, onEdit}) => (
   <View style={styles.cardContainer}>
     <View style={styles.card}>
       <Text style={todo.completed ? styles.completed : styles.text}>
@@ -15,9 +15,15 @@ const TodoItem = ({todo, onToggle, onDelete}) => (
           ]}
           onPress={onToggle}>
           <Text style={styles.buttonText}>
-            {todo.completed ? 'Pending' : 'Done'}
+            {todo.completed ? 'Active' : 'Done'}
           </Text>
         </TouchableOpacity>
+
+        {/* Edit Button */}
+        <TouchableOpacity style={styles.editButton} onPress={onEdit}>
+          <Text style={styles.deleteButtonText}>Edit</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
           <Text style={styles.deleteButtonText}>Delete</Text>
         </TouchableOpacity>
@@ -49,6 +55,14 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     shadowOffset: {width: 0, height: 3},
     elevation: 5, // Android shadow
+  },
+  editButton: {
+    backgroundColor: '#2196F3', // Blue for Edit
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   text: {
     fontSize: 16,

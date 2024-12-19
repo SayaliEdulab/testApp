@@ -98,6 +98,10 @@ const MainScreen = ({ navigation, route }) => {
     setTodos(prevTodos => prevTodos.filter(todo => todo.id !== id));
   };
 
+  const handledit = id => {
+
+  };
+
   const getFilteredTodos = () => {
     switch (filter) {
       case 'Active':
@@ -123,6 +127,7 @@ const MainScreen = ({ navigation, route }) => {
       todo={item}
       onToggle={() => handleToggle(item.id)}
       onDelete={() => handleDelete(item.id)}
+      onEdit={() => handledit(item.id)}
     />
   );
 
