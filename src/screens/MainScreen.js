@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import TodoItem from '../components/TodoItem';
 import FeatherIcon from 'react-native-vector-icons/Feather';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MainScreen = ({navigation}) => {
   const [todos, setTodos] = useState([]);
@@ -22,29 +23,65 @@ const MainScreen = ({navigation}) => {
   const [sortModalVisible, setSortModalVisible] = useState(false);
 
   useEffect(() => {
-    fetchTodos(page);
+    loadData();
   }, [page]);
 
-  const fetchTodos = page => {
-    setLoading(true);
-    fetch(`https://jsonplaceholder.typicode.com/todos?_page=${page}&_limit=10`)
-      .then(response => {
-        return response.json(); // Parse the JSON body
-      })
-      .then(data => {
-        const updatedData = data.map(todo => ({
-          ...todo,
-          created_at: new Date().toISOString(), // Add created_at timestamp
-          updated_at: new Date().toISOString(), // Add updated_at timestamp
+  const fetchStoredData = async () => {
+    try {
+      const value = await AsyncStorage.getItem('todos');
+      if (value !== null) {
+        return JSON.parse(value).map(todo => ({
+          id: `local-${todo}`,
+          title: todo,
+          created_at: new Date().toISOString(),
+          isLocal: true,
         }));
-        setTodos(prevTodos => [...prevTodos, ...updatedData]);
-        setHasMore(data.length > 0);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error('Fetch Error:', error); // Log any errors
-        setLoading(false);
-      });
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching from AsyncStorage:', error);
+      return [];
+    }
+  };
+
+  const fetchTodos = async currentPage => {
+    try {
+      const response = await fetch(
+        `https://jsonplaceholder.typicode.com/todos?_page=${currentPage}&_limit=10`,
+      );
+      const data = await response.json();
+      return data.map(todo => ({
+        ...todo,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        isLocal: false,
+      }));
+    } catch (error) {
+      console.error('Fetch Error:', error);
+      return [];
+    }
+  };
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [storedData, apiData] = await Promise.all([
+        fetchStoredData(),
+        fetchTodos(page),
+      ]);
+      setTodos(prevTodos => [...prevTodos, ...storedData, ...apiData]);
+      setHasMore(apiData.length > 0);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMore = () => {
+    if (!loading && hasMore) {
+      setPage(prevPage => prevPage + 1);
+    }
   };
 
   const handleToggle = id => {
@@ -65,12 +102,6 @@ const MainScreen = ({navigation}) => {
     setTodos(prevTodos => prevTodos.filter(todo => todo.id !== id));
   };
 
-  const loadMore = () => {
-    if (!loading && hasMore) {
-      setPage(prevPage => prevPage + 1);
-    }
-  };
-
   const getFilteredTodos = () => {
     switch (filter) {
       case 'Active':
@@ -84,17 +115,11 @@ const MainScreen = ({navigation}) => {
 
   const getSortedTodos = filteredTodos => {
     if (sortOption === 'Recent') {
-      return [...filteredTodos].reverse();
+      return [...filteredTodos].sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at),
+      );
     }
-    return [...filteredTodos].sort((a, b) => a.id - b.id);
-  };
-
-  const getCompletedCount = () => {
-    return todos.filter(todo => todo.completed).length;
-  };
-
-  const getTotalCount = () => {
-    return todos.length;
+    return [...filteredTodos].sort((a, b) => parseInt(a.id) - parseInt(b.id));
   };
 
   const renderItem = ({item}) => (
@@ -105,6 +130,15 @@ const MainScreen = ({navigation}) => {
     />
   );
 
+  const toggleModal = (type, visible) => {
+    if (type === 'filter') {
+      setFilterModalVisible(visible);
+    }
+    if (type === 'sort') {
+      setSortModalVisible(visible);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header with Icons */}
@@ -113,27 +147,27 @@ const MainScreen = ({navigation}) => {
           onPress={() => navigation.navigate('AddTodoScreen')}
           style={styles.iconButton}>
           <FeatherIcon name="plus" size={24} color="black" />
-          <Text style={{textAlign: 'center', color: 'black'}}>Add Todo</Text>
+          <Text style={styles.iconText}>Add Todo</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => setFilterModalVisible(true)}
+          onPress={() => toggleModal('filter', true)}
           style={styles.iconButton}>
           <FeatherIcon name="filter" size={24} color="black" />
-          <Text style={{textAlign: 'center', color: 'black'}}>Filter</Text>
+          <Text style={styles.iconText}>Filter</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => setSortModalVisible(true)}
+          onPress={() => toggleModal('sort', true)}
           style={styles.iconButton}>
           <FeatherIcon name="sliders" size={24} color="black" />
-          <Text style={{marginRight: 3, color: 'black'}}>SortBy Id</Text>
+          <Text style={styles.iconText}>Sort</Text>
         </TouchableOpacity>
       </View>
 
       {/* Counts */}
       <View style={styles.countContainer}>
-        <Text style={styles.countText}>Total Todos: {getTotalCount()}</Text>
+        <Text style={styles.countText}>Total Todos: {todos.length}</Text>
         <Text style={styles.countText}>
-          Completed Todos: {getCompletedCount()}
+          Completed Todos: {todos.filter(todo => todo.completed).length}
         </Text>
       </View>
 
@@ -142,42 +176,23 @@ const MainScreen = ({navigation}) => {
         visible={filterModalVisible}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setFilterModalVisible(false)}>
+        onRequestClose={() => toggleModal('filter', false)}>
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Filter TODOs</Text>
-          <TouchableOpacity
-            style={[
-              styles.modalButton,
-              filter === 'All' && styles.activeModalButton,
-            ]}
-            onPress={() => {
-              setFilter('All');
-              setFilterModalVisible(false);
-            }}>
-            <Text style={styles.modalButtonText}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.modalButton,
-              filter === 'Active' && styles.activeModalButton,
-            ]}
-            onPress={() => {
-              setFilter('Active');
-              setFilterModalVisible(false);
-            }}>
-            <Text style={styles.modalButtonText}>Active</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.modalButton,
-              filter === 'Done' && styles.activeModalButton,
-            ]}
-            onPress={() => {
-              setFilter('Done');
-              setFilterModalVisible(false);
-            }}>
-            <Text style={styles.modalButtonText}>Done</Text>
-          </TouchableOpacity>
+          {['All', 'Active', 'Done'].map(option => (
+            <TouchableOpacity
+              key={option}
+              style={[
+                styles.modalButton,
+                filter === option && styles.activeModalButton,
+              ]}
+              onPress={() => {
+                setFilter(option);
+                toggleModal('filter', false);
+              }}>
+              <Text style={styles.modalButtonText}>{option}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </Modal>
 
@@ -186,34 +201,27 @@ const MainScreen = ({navigation}) => {
         visible={sortModalVisible}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setSortModalVisible(false)}>
+        onRequestClose={() => toggleModal('sort', false)}>
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Sort TODOs</Text>
-          <TouchableOpacity
-            style={[
-              styles.modalButton,
-              sortOption === 'ID' && styles.activeModalButton,
-            ]}
-            onPress={() => {
-              setSortOption('ID');
-              setSortModalVisible(false);
-            }}>
-            <Text style={styles.modalButtonText}>Sort by ID</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.modalButton,
-              sortOption === 'Recent' && styles.activeModalButton,
-            ]}
-            onPress={() => {
-              setSortOption('Recent');
-              setSortModalVisible(false);
-            }}>
-            <Text style={styles.modalButtonText}>Sort by Most Recent</Text>
-          </TouchableOpacity>
+          {['ID', 'Recent'].map(option => (
+            <TouchableOpacity
+              key={option}
+              style={[
+                styles.modalButton,
+                sortOption === option && styles.activeModalButton,
+              ]}
+              onPress={() => {
+                setSortOption(option);
+                toggleModal('sort', false);
+              }}>
+              <Text style={styles.modalButtonText}>Sort by {option}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </Modal>
 
+      {/* Todos List */}
       <FlatList
         data={getSortedTodos(getFilteredTodos())}
         renderItem={renderItem}
@@ -229,58 +237,36 @@ const MainScreen = ({navigation}) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 20,
-  },
+  container: {flex: 1, backgroundColor: '#f5f5f5'},
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 10,
-  },
-  iconButton: {
-    backgroundColor: '#f0f0f0',
     padding: 10,
-    borderRadius: 10,
   },
+  iconButton: {alignItems: 'center'},
+  iconText: {textAlign: 'center', color: 'black'},
   countContainer: {
-    margin: 10,
     padding: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
-  countText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'black',
-  },
+  countText: {fontSize: 16, fontWeight: 'bold'},
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: 'white',
-  },
+  modalTitle: {fontSize: 20, marginBottom: 20, color: '#fff'},
   modalButton: {
+    padding: 10,
+    margin: 5,
     backgroundColor: '#fff',
-    padding: 15,
-    marginVertical: 10,
     borderRadius: 5,
-    width: '80%',
-    alignItems: 'center',
   },
-  activeModalButton: {
-    backgroundColor: '#6200ee',
-  },
-  modalButtonText: {
-    color: 'black',
-    fontWeight: 'bold',
-  },
+  activeModalButton: {backgroundColor: '#87ceeb'},
+  modalButtonText: {fontSize: 16},
 });
 
 export default MainScreen;

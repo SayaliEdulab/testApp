@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 import {useDispatch} from 'react-redux';
 import {addTodo} from '../store/todoSlice';
 
@@ -15,9 +16,21 @@ const AddTodoScreen = ({navigation}) => {
   const [text, setText] = useState('');
   const dispatch = useDispatch();
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (text.trim()) {
-      dispatch(addTodo(text.trim())); // Dispatch trimmed text
+      const newTodo = text.trim();
+      // Store in AsyncStorage
+      try {
+        const existingTodos = await AsyncStorage.getItem('todos');
+        const todos = existingTodos ? JSON.parse(existingTodos) : [];
+        todos.push(newTodo);
+        console.log('newTodo---', newTodo);
+        await AsyncStorage.setItem('todos', JSON.stringify(todos));
+      } catch (error) {
+        console.error('Error saving todo:', error);
+      }
+      // Dispatch to Redux store
+      dispatch(addTodo(newTodo));
       navigation.goBack();
     }
   };
