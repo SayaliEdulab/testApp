@@ -98,9 +98,22 @@ const MainScreen = ({ navigation, route }) => {
     setTodos(prevTodos => prevTodos.filter(todo => todo.id !== id));
   };
 
-  const handledit = id => {
-
+  const handledit = (id, newTitle) => {
+    setTodos(prevTodos =>
+      prevTodos.map(todo =>
+        todo.id === id ? {...todo, title: newTitle, updated_at: new Date()} : todo
+      )
+    );
   };
+
+  const handleSave = (id, newTitle) => {
+    setTodos(prevTodos =>
+      prevTodos.map(todo =>
+        todo.id === id ? { ...todo, title: newTitle, updated_at: new Date() } : todo
+      )
+    );
+  };
+
 
   const getFilteredTodos = () => {
     switch (filter) {
@@ -128,7 +141,8 @@ const MainScreen = ({ navigation, route }) => {
       onToggle={() => handleToggle(item.id)}
       onDelete={() => handleDelete(item.id)}
       onEdit={() => handledit(item.id)}
-    />
+      onSave={(id, newTitle) => handleSave(id, newTitle)}
+      />
   );
 
   return (

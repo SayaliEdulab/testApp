@@ -1,47 +1,94 @@
-import React from 'react';
-import {View, Text, Button, StyleSheet, TouchableOpacity} from 'react-native';
+import React, {useState} from 'react';
+import {
+  View,
+  Text,
+  Button,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+} from 'react-native';
 
-const TodoItem = ({todo, onToggle, onDelete, onEdit}) => (
-  <View style={styles.cardContainer}>
-    <View style={styles.card}>
-      <Text style={todo.completed ? styles.completed : styles.text}>
-        {todo.title}
-      </Text>
-      <View style={styles.buttonsContainer}>
-        <TouchableOpacity
-          style={[
-            styles.button,
-            todo.completed ? styles.undoButton : styles.doneButton,
-          ]}
-          onPress={onToggle}>
-          <Text style={styles.buttonText}>
-            {todo.completed ? 'Active' : 'Done'}
+const TodoItem = ({todo, onToggle, onDelete, onEdit, onSave}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedText, setEditedText] = useState(todo.title);
+
+  // const handleSave = () => {
+  //   onEdit(todo.id, editedText);
+  //   setIsEditing(false);
+  // };
+
+  return (
+    <View style={styles.cardContainer}>
+      <View style={styles.card}>
+        {isEditing ? (
+          <TextInput
+            style={styles.input}
+            value={editedText}
+            onChangeText={setEditedText}
+          />
+        ) : (
+          <Text style={todo.completed ? styles.completed : styles.text}>
+            {todo.title}
           </Text>
-        </TouchableOpacity>
+        )}
 
-        {/* Edit Button */}
-        <TouchableOpacity style={styles.editButton} onPress={onEdit}>
-          <Text style={styles.deleteButtonText}>Edit</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonsContainer}>
+          <TouchableOpacity
+            style={[
+              styles.button,
+              todo.completed ? styles.undoButton : styles.doneButton,
+            ]}
+            onPress={onToggle}>
+            <Text style={styles.buttonText}>
+              {todo.completed ? 'Active' : 'Done'}
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
-          <Text style={styles.deleteButtonText}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-      {/* Display created_at and updated_at */}
-      <View style={styles.dateContainer}>
-        <Text style={styles.dateText}>
-          Created at: {new Date(todo.created_at).toLocaleString()}
-        </Text>
-        <Text style={styles.dateText}>
-          Updated at: {new Date(todo.updated_at).toLocaleString()}
-        </Text>
+          {isEditing ? (
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={() => {
+                onSave(todo.id, editedText);
+                setIsEditing(false);
+              }}>
+              <Text style={styles.saveButtonText}>Save</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => setIsEditing(true)}>
+              <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
+            <Text style={styles.deleteButtonText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.dateContainer}>
+          <Text style={styles.dateText}>
+            Created at: {new Date(todo.created_at).toLocaleString()}
+          </Text>
+          <Text style={styles.dateText}>
+            Updated at: {new Date(todo.updated_at).toLocaleString()}
+          </Text>
+        </View>
       </View>
     </View>
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
+  // Add an input style
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    padding: 8,
+    marginBottom: 10,
+    fontSize: 16,
+  },
   cardContainer: {
     marginBottom: 15,
     marginHorizontal: 20,
@@ -54,10 +101,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     shadowOffset: {width: 0, height: 3},
-    elevation: 5, // Android shadow
+    elevation: 5,
   },
   editButton: {
-    backgroundColor: '#2196F3', // Blue for Edit
+    backgroundColor: '#2196F3',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 5,
@@ -85,13 +140,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   doneButton: {
-    backgroundColor: '#4CAF50', // Green for Done
+    backgroundColor: '#4CAF50',
   },
   undoButton: {
-    backgroundColor: '#FF9800', // Orange for Undo
+    backgroundColor: '#FF9800',
   },
   deleteButton: {
-    backgroundColor: '#FF5722', // Red for Delete
+    backgroundColor: '#FF5722',
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 5,
@@ -103,6 +158,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   deleteButtonText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  saveButtonText: {
     color: '#fff',
     fontSize: 14,
   },
