@@ -15,12 +15,21 @@ const TodoItem = ({todo, onToggle, onDelete}) => (
           ]}
           onPress={onToggle}>
           <Text style={styles.buttonText}>
-            {todo.completed ? 'Undo' : 'Done'}
+            {todo.completed ? 'Pending' : 'Done'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
           <Text style={styles.deleteButtonText}>Delete</Text>
         </TouchableOpacity>
+      </View>
+      {/* Display created_at and updated_at */}
+      <View style={styles.dateContainer}>
+        <Text style={styles.dateText}>
+          Created at: {new Date(todo.created_at).toLocaleString()}
+        </Text>
+        <Text style={styles.dateText}>
+          Updated at: {new Date(todo.updated_at).toLocaleString()}
+        </Text>
       </View>
     </View>
   </View>
@@ -82,6 +91,13 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     color: '#fff',
     fontSize: 14,
+  },
+  dateContainer: {
+    marginTop: 10,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#777',
   },
 });
 

@@ -11,6 +11,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 import {useDispatch} from 'react-redux';
 import {addTodo} from '../store/todoSlice';
+import MainScreen from './MainScreen';
 
 const AddTodoScreen = ({navigation}) => {
   const [text, setText] = useState('');
@@ -24,14 +25,13 @@ const AddTodoScreen = ({navigation}) => {
         const existingTodos = await AsyncStorage.getItem('todos');
         const todos = existingTodos ? JSON.parse(existingTodos) : [];
         todos.push(newTodo);
-        console.log('newTodo---', newTodo);
         await AsyncStorage.setItem('todos', JSON.stringify(todos));
       } catch (error) {
         console.error('Error saving todo:', error);
       }
       // Dispatch to Redux store
       dispatch(addTodo(newTodo));
-      navigation.goBack();
+      navigation.navigate('MainScreen', {newTodo});
     }
   };
 
