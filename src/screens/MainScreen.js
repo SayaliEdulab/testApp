@@ -101,9 +101,9 @@ const MainScreen = ({ navigation, route }) => {
   const getFilteredTodos = () => {
     switch (filter) {
       case 'Active':
-        return todos.filter(todo => !todo.completed);
-      case 'Done':
         return todos.filter(todo => todo.completed);
+      case 'Done':
+        return todos.filter(todo => !todo.completed);
       default:
         return todos;
     }
