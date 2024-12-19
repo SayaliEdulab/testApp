@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import TodoItem from '../components/TodoItem';
 import FeatherIcon from 'react-native-vector-icons/Feather';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MainScreen = ({ navigation, route }) => {
   const [todos, setTodos] = useState([]);
@@ -39,11 +40,15 @@ const MainScreen = ({ navigation, route }) => {
         updated_at: new Date().toISOString(),
         isLocal: true,
       };
-      setTodos(prevTodos => [newTodo, ...prevTodos]); // Add new todo to the top
+      setTodos(prevTodos => {
+        const updatedTodos = [newTodo, ...prevTodos];
+        saveTodosToStorage(updatedTodos);
+        return updatedTodos;
+      });
     }
   }, [route.params]);
 
-  const fetchTodos = async currentPage => {
+  const fetchTodos = async (currentPage) => {
     try {
       const response = await fetch(
         `https://jsonplaceholder.typicode.com/todos?_page=${currentPage}&_limit=10`
@@ -64,13 +69,33 @@ const MainScreen = ({ navigation, route }) => {
   const loadData = async () => {
     setLoading(true);
     try {
+      const storedTodos = await getTodosFromStorage();
       const apiData = await fetchTodos(page);
-      setTodos(prevTodos => [...prevTodos, ...apiData]);
+      setTodos(prevTodos => [...storedTodos, ...apiData]);
       setHasMore(apiData.length > 0);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveTodosToStorage = async (todosList) => {
+    try {
+      const jsonValue = JSON.stringify(todosList);
+      await AsyncStorage.setItem('@todos', jsonValue);
+    } catch (e) {
+      console.error('Error saving todos to AsyncStorage:', e);
+    }
+  };
+
+  const getTodosFromStorage = async () => {
+    try {
+      const jsonValue = await AsyncStorage.getItem('@todos');
+      return jsonValue != null ? JSON.parse(jsonValue) : [];
+    } catch (e) {
+      console.error('Error fetching todos from AsyncStorage:', e);
+      return [];
     }
   };
 
@@ -85,17 +110,22 @@ const MainScreen = ({ navigation, route }) => {
       prevTodos.map(todo =>
         todo.id === id
           ? {
-            ...todo,
-            completed: !todo.completed,
-            updated_at: new Date().toISOString(),
-          }
+              ...todo,
+              completed: !todo.completed,
+              updated_at: new Date().toISOString(),
+            }
           : todo
       )
     );
+    updateTodoInStorage(id, 'completed');
   };
 
   const handleDelete = id => {
-    setTodos(prevTodos => prevTodos.filter(todo => todo.id !== id));
+    setTodos(prevTodos => {
+      const updatedTodos = prevTodos.filter(todo => todo.id !== id);
+      saveTodosToStorage(updatedTodos);
+      return updatedTodos;
+    });
   };
 
   const handledit = (id, newTitle) => {
@@ -112,8 +142,15 @@ const MainScreen = ({ navigation, route }) => {
         todo.id === id ? { ...todo, title: newTitle, updated_at: new Date() } : todo
       )
     );
+    updateTodoInStorage(id, 'title', newTitle);
   };
 
+  const updateTodoInStorage = async (id, field, newValue) => {
+    const updatedTodos = todos.map(todo =>
+      todo.id === id ? { ...todo, [field]: newValue || todo[field] } : todo
+    );
+    saveTodosToStorage(updatedTodos);
+  };
 
   const getFilteredTodos = () => {
     switch (filter) {
@@ -142,7 +179,7 @@ const MainScreen = ({ navigation, route }) => {
       onDelete={() => handleDelete(item.id)}
       onEdit={() => handledit(item.id)}
       onSave={(id, newTitle) => handleSave(id, newTitle)}
-      />
+    />
   );
 
   return (
@@ -185,7 +222,8 @@ const MainScreen = ({ navigation, route }) => {
         visible={filterModalVisible}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setFilterModalVisible('filter', false)}>
+        onRequestClose={() => setFilterModalVisible('filter', false)}
+      >
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Filter TODOs</Text>
           {['All', 'Active', 'Done'].map(option => (
@@ -198,7 +236,8 @@ const MainScreen = ({ navigation, route }) => {
               onPress={() => {
                 setFilter(option);
                 setFilterModalVisible('filter', false);
-              }}>
+              }}
+            >
               <Text style={styles.modalButtonText}>{option}</Text>
             </TouchableOpacity>
           ))}
@@ -210,7 +249,8 @@ const MainScreen = ({ navigation, route }) => {
         visible={sortModalVisible}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setSortModalVisible('sort', false)}>
+        onRequestClose={() => setSortModalVisible('sort', false)}
+      >
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Sort TODOs</Text>
           {['ID', 'Recent'].map(option => (
@@ -223,7 +263,8 @@ const MainScreen = ({ navigation, route }) => {
               onPress={() => {
                 setSortOption(option);
                 setSortModalVisible('sort', false);
-              }}>
+              }}
+            >
               <Text style={styles.modalButtonText}>Sort by {option}</Text>
             </TouchableOpacity>
           ))}
@@ -244,7 +285,6 @@ const MainScreen = ({ navigation, route }) => {
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
@@ -269,7 +309,6 @@ const styles = StyleSheet.create({
     margin: 90,
     marginTop: 290,
   },
-
   modalTitle: { fontSize: 20, marginBottom: 20, color: '#fff' },
   modalButton: {
     padding: 10,
